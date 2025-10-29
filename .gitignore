@@ -1,0 +1,31 @@
+# =========================
+# Maven & Java Build
+# =========================
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+**/.venv/
+*.pyc
+.env
+.env.*
+
+# Maven wrapper 需要保留
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+!mvnw
+!mvnw.cmd
+
+.vscode
+
+# ============================================
+# 🗂️ Logs & Temp Files
+# ============================================
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+*.rej

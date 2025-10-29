@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: common-service
+
+  data:
+    redis:
+      host: ${env.REDIS_HOST:localhost}
+      port: ${env.REDIS_PORT:6379}
+      password: ${env.REDIS_PASSWORD:}
+
+  datasource:
+    url: ${env.DB_URL:jdbc:postgresql://localhost:5432/llm}
+    username: ${env.DB_USERNAME:postgres}
+    password: ${env.DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${env.NACOS_ADDR:localhost:8848}
+
+  rabbitmq:
+    host: ${env.RABBIT_HOST:localhost}
+    port: ${env.RABBIT_PORT:5672}
+    username: ${env.RABBIT_USERNAME:guest}
+    password: ${env.RABBIT_PASSWORD:guest}
+
+server:
+  port: ${env.SERVER_PORT:10025}
+
+logging:
+  level:
+    com.wendy.common.controller.CommonController: debug
+    com.wendy.common.handler.WsHandler: debug

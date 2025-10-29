@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${env.NACOS_ADDR:localhost:8848}
+
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: auth
+          uri: lb://auth-service
+          predicates:
+            - name: Path
+              args:
+                pattern: /api/auth/**
+        - id: common-api
+          uri: lb://common-service
+          predicates:
+            - name: Path
+              args:
+                pattern: /api/common/**
+        - id: common-ws
+          uri: lb://common-service
+          predicates:
+            - name: Path
+              args:
+                pattern: /ws/chat/**
+
+server:
+  port: 8081
+
+logging:
+  level:
+    com.wendy.gateway.filter.AuthServiceGatewayFilter: debug
