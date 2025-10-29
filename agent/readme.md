@@ -19,3 +19,9 @@ It listens to message queues, processes requests using LLMs, and returns respons
 pip install -r requeirements.txt
 uvicorn app.main:app
 ```
+
+## Build
+
+```Shell
+pyinstaller --onefile --name agent --additional-hooks-dir=hooks app/main.py
+```

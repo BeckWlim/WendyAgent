@@ -1,5 +1,6 @@
 package com.wendy.common.handler;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wendy.common.service.RabbitMqService;
 import com.wendy.common.service.WsSessionService;
 import jakarta.annotation.Resource;
@@ -24,15 +25,23 @@ public class WsHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        // 从query参数或header中获取token
+        // 从query header中获取token
         String username = (String) session.getAttributes().get("username");
-        logger.debug("User: {}, Id: {}", username, session.getId());
-        // 假设：token已经由gateway/auth验证过
+        String sessionId = session.getId();
+        logger.debug("User: {}, Id: {}", username, sessionId);
+
         Map<String, String> meta = new HashMap<>();
         meta.put("username", username);
+        meta.put("sessionId", sessionId);
+        wsSessionService.putSession(sessionId, meta);
 
-        wsSessionService.putSession(session.getId(), meta);
-        session.sendMessage(new TextMessage("Connected as " + username));
+        Map<String, String> payload = new HashMap<>();
+        payload.put("type", "session_init");
+        payload.put("sessionId", sessionId);
+        payload.put("username", username);
+
+        String json = new ObjectMapper().writeValueAsString(payload);
+        session.sendMessage(new TextMessage(json));
     }
 
     @Override
@@ -53,8 +62,13 @@ public class WsHandler extends TextWebSocketHandler {
         future.thenAccept(answer -> {
             try {
                 if (session.isOpen()) {
+                    Map<String, Object> resp = new HashMap<>();
+                    resp.put("type", "response");
+                    resp.put("answer", answer);
+
+                    String json = new ObjectMapper().writeValueAsString(resp);
                     wsSessionService.addContextPair(sessionId, payload, answer);
-                    session.sendMessage(new TextMessage(answer));
+                    session.sendMessage(new TextMessage(json));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
