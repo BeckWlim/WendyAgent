@@ -6,15 +6,10 @@
 *.jar
 *.war
 *.ear
-**/.venv/
-*.pyc
-*.spec
 
 .env
 .env.*
 .mypy_cache/
-build
-dist
 # Maven wrapper 需要保留
 !.mvn/wrapper/maven-wrapper.jar
 !.mvn/wrapper/maven-wrapper.properties

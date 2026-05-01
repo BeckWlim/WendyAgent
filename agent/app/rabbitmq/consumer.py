@@ -1,8 +1,10 @@
 import json
+import asyncio
 import aio_pika
 from app.config import settings
-from app.llm.chain import run_agent_async
 from app.rabbitmq.producer import send_response_async
+from app.runtime.agent_runtime import get_runtime
+from app.runtime.schemas import AgentRunRequest
 from app.utils.logger import logger
 
 async def handle_message(message: aio_pika.IncomingMessage):
@@ -14,11 +16,11 @@ async def handle_message(message: aio_pika.IncomingMessage):
             meta = data.get("meta", {})
 
             logger.info(f"Received: {question}")
-            answer = await run_agent_async(question, history, meta)
+            result = await get_runtime().run(AgentRunRequest(question=question, history=history, meta=meta))
 
             response = {
                 "session_id": meta.get("session_id"),
-                "answer": answer
+                "answer": result.answer
             }
             await send_response_async(response)
             logger.info(f"Answer sent for {meta.get('session_id')}")
@@ -50,11 +52,20 @@ async def start_consumer():
                 history = data.get("history", [])
                 meta = data.get("meta", {})
                 correlation_id = data.get("correlationId")
-                answer = await run_agent_async(question, history, meta)
+                result = await get_runtime().run(
+                    AgentRunRequest(
+                        question=question,
+                        history=history,
+                        meta=meta,
+                        correlation_id=correlation_id,
+                    )
+                )
 
                 response = {
-                    "correlationId": correlation_id,
-                    "reply": answer
+                    "correlationId": result.correlation_id,
+                    "reply": result.answer,
+                    "memoryRefs": result.memory_refs,
+                    "ragRefs": result.rag_refs,
                 }
                 await send_response_async(response)
                 logger.info(f"Response sent for {correlation_id}")
@@ -64,3 +75,4 @@ async def start_consumer():
 
     await queue.consume(handle_message)
     logger.info("RabbitMQ consumer started")
+    await asyncio.Future()

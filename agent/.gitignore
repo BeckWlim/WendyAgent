@@ -1,0 +1,28 @@
+# Python environment
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local runtime state
+data/
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Local env and caches
+.env
+.env.*
+.mypy_cache/
+.pytest_cache/
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+*.rej

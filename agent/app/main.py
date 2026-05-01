@@ -1,46 +1,77 @@
 import asyncio
 from contextlib import asynccontextmanager
+
+import uvicorn
 from fastapi import FastAPI
-from app.models.message import AgentRequest
+
 from app.llm.chain import run_agent_async
+from app.models.message import AgentRequest, TaskSubmitRequest, ToolCallRequest
 from app.rabbitmq.consumer import start_consumer
+from app.runtime.agent_runtime import get_runtime
 from app.utils.logger import logger
 
-app = FastAPI(title="Async LangChain Agent Service")
+app = FastAPI(title="General Agent Runtime")
 
-# ---------------- Lifespan 生命周期管理 ----------------
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 应用启动逻辑
+    runtime = get_runtime()
+    runtime.task_manager.start()
     logger.info("Starting RabbitMQ consumer...")
     consumer_task = asyncio.create_task(start_consumer())
 
     try:
-        yield  # 应用运行期间
+        yield
     finally:
-        # 应用关闭逻辑
         logger.info("Shutting down RabbitMQ consumer...")
         consumer_task.cancel()
         try:
             await consumer_task
         except asyncio.CancelledError:
             logger.info("Consumer task cancelled successfully.")
+        await runtime.task_manager.stop()
 
-# 将 Lifespan 注入 FastAPI
+
 app.router.lifespan_context = lifespan
 
-# ---------------- REST 接口 ----------------
+
 @app.post("/chat")
 async def chat(request: AgentRequest):
-    """REST接口 手动请求LLM"""
     answer = await run_agent_async(request.question, request.history, request.meta)
     return {"answer": answer}
 
+
+@app.get("/tools")
+async def list_tools():
+    return {"tools": get_runtime().tools.list_tools()}
+
+
+@app.post("/tools/call")
+async def call_tool(request: ToolCallRequest):
+    result = await get_runtime().call_tool(
+        request.name,
+        request.args,
+        conversation_id=request.conversation_id,
+        username=request.username,
+    )
+    return {"result": result}
+
+
+@app.post("/tasks")
+async def submit_task(request: TaskSubmitRequest):
+    task = await get_runtime().task_manager.submit(request.kind, request.payload)
+    return task.model_dump()
+
+
 @app.get("/")
 async def root():
-    return {"status": "ok", "service": "Async Agent"}
+    runtime = get_runtime()
+    return {
+        "status": "ok",
+        "service": "General Agent Runtime",
+        "tools": runtime.tools.list_tools(),
+    }
 
-import uvicorn
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=10027)
